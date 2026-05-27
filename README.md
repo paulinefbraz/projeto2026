@@ -48,6 +48,14 @@ Para simular o cenário mais crítico do algoritmo — onde o sistema precisa va
 | **Tempo Total de Varredura Serial** | **0.4252 segundos** |
 
 ---
+### 🖥️ Ambiente de Testes (Configuração do Computador)
+Os testes foram executados em um ambiente local de alta performance com as seguintes especificações físicas:
+* **Processador (CPU):** AMD Ryzen 7 5700X (8 Cores / 16 Threads @ 3.4GHz)
+* **Memória RAM:** 32 GB DDR4
+* **Placa-Mãe:** ASRock B450M Pro4
+* **Placa de Vídeo (GPU):** NVIDIA GeForce RTX 3070 (8 GB Dedicados)
+* **Armazenamento:** SSD NVMe 512 GB
+* **Sistema Operacional:** Windows 11 (64-bits)
 
 ## 🚀 Próximos Passos do Desenvolvimento Concorrente
 O tempo de **0.4252 segundos**, embora seja veloz para atender a um único usuário na arquitetura de memória RAM, torna-se um gargalo crítico em sistemas distribuídos sob regime de alta concorrência (ex: milhares de requisições simultâneas vindas de aplicativos móveis). 
