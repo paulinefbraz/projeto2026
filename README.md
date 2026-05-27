@@ -1,5 +1,9 @@
 # 👥 Plataforma Distribuída para Busca de Pessoas Desaparecidas
 
+Alunos:
+Pauline Fernandes Braz / 076961
+Nathan David Oliveira Fernandes / 077992
+
 ## 📋 Sobre o Projeto
 Este sistema foi desenvolvido como parte prática da disciplina de **Sistemas Distribuídos e Concorrentes**. O objetivo principal é simular uma plataforma de segurança pública de alta escala: o sistema recebe fotos de suspeitos enviadas em tempo real por cidadãos via aplicativo (Concorrência), processa e compara essas imagens utilizando múltiplos núcleos da CPU (Paralelismo) e distribui a carga de busca entre servidores regionais (Sistemas Distribuídos).
 
