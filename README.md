@@ -1,8 +1,8 @@
 # 👥 Plataforma Distribuída para Busca de Pessoas Desaparecidas
 
-Alunos:
-Pauline Fernandes Braz / 076961
-Nathan David Oliveira Fernandes / 077992
+**Alunos:**
+* Pauline Fernandes Braz / 076961
+* Nathan David Oliveira Fernandes / 077992
 
 ## 📋 Sobre o Projeto
 Este sistema foi desenvolvido como parte prática da disciplina de **Sistemas Distribuídos e Concorrentes**. O objetivo principal é simular uma plataforma de segurança pública de alta escala: o sistema recebe fotos de suspeitos enviadas em tempo real por cidadãos via aplicativo (Concorrência), processa e compara essas imagens utilizando múltiplos núcleos da CPU (Paralelismo) e distribui a carga de busca entre servidores regionais (Sistemas Distribuídos).
@@ -13,9 +13,9 @@ Este sistema foi desenvolvido como parte prática da disciplina de **Sistemas Di
 Para validar o sistema em um cenário severo de alta volumetria, foi utilizado o dataset público **CelebA**:
 * **Massa de Dados:** 202.599 imagens reais de rostos (aproximadamente 2 GB em disco).
 * **Link Oficial do Dataset:** [Kaggle - CelebA Dataset](https://www.kaggle.com/datasets/jessicali9530/celeba-dataset)
-* **Arquitetura de Armazenamento:** Em sistemas de produção de larga escala, imagens brutas nunca são guardadas diretamente dentro de tabelas de bancos de dados relacionais para evitar estouro de memória e lentidão de I/O. A arquitetura deste projeto segue o padrão de mercado:
-  1. As imagens físicas ficam armazenadas em um *Storage* (diretório local de arquivos).
-  2. O banco de dados em memória RAM gerencia apenas os metadados (nome/caminho do arquivo) e o seu respectivo **Vetor de Características (Embedding)** de 128 posições gerado por processamento matemático.
+* **Arquitetura de Armazenamento:** Em sistemas de produção de larga escala, imagens brutas nunca são guardadas diretamente dentro de tabelas de bancos de dados relacionais para evitar estouro de memória e lentidão de I/O. A arquitetura deste projeto simula dois cenários de engenharia:
+  1. **Cenário de IO Bound (Disco):** Varredura abrindo as imagens físicas direto do *Storage* (diretório local de arquivos) e extraindo as matrizes em tempo de execução.
+  2. **Cenário de CPU Bound (Memória):** Gerenciamento puramente em memória RAM através do mapeamento de metadados e o seu respectivo **Vetor de Características (Embedding)** de 128 posições gerado por processamento matemático.
 
 ---
 
@@ -34,22 +34,23 @@ Onde $q$ é o vetor do suspeito capturado na rua e $p$ é o vetor do registro do
 Nesta primeira etapa do projeto, o algoritmo foi executado em modo **Serial Monothread** (utilizando estritamente 1 único núcleo do processador sem concorrência) para servir como *Baseline* (linha de base de performance) para as futuras otimizações concorrentes.
 
 ### Configuração do Pior Cenário ($O(n)$):
-Para simular o cenário mais crítico do algoritmo — onde o sistema precisa varrer a base de dados inteira antes de encontrar o alvo ou para confirmar um alarme falso —, a foto de cadastro do alvo (`nathan_cadastro.jpg`) foi isolada e posicionada **estritamente na última posição** da lista de mais de 202 mil registros. Uma imagem secundária (`nathan_suspeito.jpg`) foi submetida como a requisição de busca do aplicativo.
+Para simular o cenário mais crítico do algoritmo — onde o sistema precisa varrer a base de dados inteira antes de encontrar o alvo —, a foto de cadastro do alvo (`nathan_cadastro.jpg`) foi posicionada **estritamente na última posição** da lista de mais de 202 mil registros em disco. Uma imagem secundária (`nathan_suspeito.jpg`) foi submetida como a requisição de busca do aplicativo.
 
 ### ⏱️ Resultados Obtidos no Ambiente Local
 
-| Métrica Avaliada | Resultado Registrado |
-| :--- | :--- |
-| **Total de Registros de Fundo (CelebA)** | 202.599 fotos |
-| **Alvo Inserido no Banco** | 1 foto (`nathan_cadastro.jpg`) |
-| **Volume Total da Base de Busca** | 202.600 registros |
-| **Posição de Localização do Alvo** | Índice 202.599 (Último elemento) |
-| **Status do Reconhecimento Facial** | **🎯 SUCESSO (Alvo Localizado)** |
-| **Tempo Total de Varredura Serial** | **0.4252 segundos** |
+| Métrica Avaliada | Cenário 1: Leitura em Disco Bruto | Cenário 2: Otimizado em Memória RAM |
+| :--- | :--- | :--- |
+| **Total de Fotos (CelebA)** | 202.599 fotos | 202.599 fotos |
+| **Alvo Inserido no Banco** | 1 foto (`nathan_cadastro.jpg`) | 1 foto (`nathan_cadastro.jpg`) |
+| **Volume Total de Busca** | 202.600 registros | 202.600 registros |
+| **Posição do Alvo** | Índice 202.599 (Último elemento) | Índice 202.599 (Último elemento) |
+| **Status do Reconhecimento** | **🎯 SUCESSO (Alvo Localizado)** | **🎯 SUCESSO (Alvo Localizado)** |
+| **Tempo Total de Varredura** | **865.6709 segundos** (~14m 25s) | **0.3998 segundos** |
 
 ---
+
 ### 🖥️ Ambiente de Testes (Configuração do Computador)
-Os testes foram executados em um ambiente local de alta performance com as seguintes especificações físicas:
+Os testes foram executados em um ambiente local com as seguintes especificações físicas:
 * **Processador (CPU):** AMD Ryzen 7 5700X (8 Cores / 16 Threads @ 3.4GHz)
 * **Memória RAM:** 32 GB DDR4
 * **Placa-Mãe:** ASRock B450M Pro4
@@ -57,9 +58,12 @@ Os testes foram executados em um ambiente local de alta performance com as segui
 * **Armazenamento:** SSD NVMe 512 GB
 * **Sistema Operacional:** Windows 11 (64-bits)
 
+---
+
 ## 🚀 Próximos Passos do Desenvolvimento Concorrente
-O tempo de **0.4252 segundos**, embora seja veloz para atender a um único usuário na arquitetura de memória RAM, torna-se um gargalo crítico em sistemas distribuídos sob regime de alta concorrência (ex: milhares de requisições simultâneas vindas de aplicativos móveis). 
+O teste serial físico revelou um gargalo crítico de **14 minutos e 25 segundos** quando o sistema precisa abrir arquivo por arquivo em disco usando uma única thread. Mesmo no modelo otimizado em memória RAM (0.39s), o tempo torna-se inviável caso o sistema precise atender a milhares de requisições simultâneas vindas dos aplicativos móveis dos cidadãos. 
 
 Na próxima fase do projeto, implementaremos:
-* **Paralelismo de Dados (Multi-threading):** Divisão da base de 202.600 vetores em fatias iguais (*chunks*) para serem processadas simultaneamente pelos múltiplos núcleos físicos da CPU ($O(n/k)$).
-* **Arquitetura Concorrente:** Filas de requisições assíncronas para evitar o travamento ou enfileiramento do servidor principal.
+* **Paralelismo de Dados (Multi-threading):** Divisão da carga de leitura de disco e cálculo de matrizes em pedaços iguais (*chunks*), distribuindo o processamento entre as 16 threads lógicas disponíveis no processador Ryzen 7 para mitigar o gargalo de I/O e computação ($O(n/k)$).
+* **Cálculo de Speedup:** Mensuração do ganho real de performance obtido através do paralelismo comparado a esta baseline serial.
+* **Arquitetura Concorrente:** Filas de requisições assíncronas para evitar o travamento do servidor principal.
