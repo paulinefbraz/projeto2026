@@ -50,7 +50,7 @@ Para simular o cenário mais crítico do algoritmo — onde o sistema precisa va
 ---
 
 ## 🚀 Próximos Passos do Desenvolvimento Concorrente
-O tempo de **0.4252 segundos**, embora seja veloz para atender a um único usuário na arquitetura de memória RAM, torna-se um gargalo crítico em sistemas distribuídos sob regime de alta concorrência (ex: milhares de requisições simultâneas vindas de aplicativos móveis da polícia na rua). 
+O tempo de **0.4252 segundos**, embora seja veloz para atender a um único usuário na arquitetura de memória RAM, torna-se um gargalo crítico em sistemas distribuídos sob regime de alta concorrência (ex: milhares de requisições simultâneas vindas de aplicativos móveis). 
 
 Na próxima fase do projeto, implementaremos:
 * **Paralelismo de Dados (Multi-threading):** Divisão da base de 202.600 vetores em fatias iguais (*chunks*) para serem processadas simultaneamente pelos múltiplos núcleos físicos da CPU ($O(n/k)$).
