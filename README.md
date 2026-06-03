@@ -68,7 +68,6 @@ Os testes foram executados em um ambiente local com as seguintes especificaçõe
 
 ## 4. Resultados Experimentais
 
-Preencha a tabela com os tempos médios de execução obtidos.
 
 | Nº Threads/Processos | Tempo de Execução (s) |
 | :---: | :--- |
