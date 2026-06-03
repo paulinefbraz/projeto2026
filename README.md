@@ -66,7 +66,6 @@ Os testes foram executados em um ambiente local com as seguintes especificaçõe
 
 ## 4. Resultados Experimentais
 
-Preencha a tabela com os tempos médios de execução obtidos.
 
 | Nº Threads/Processos | Tempo de Execução (s) |
 | :---: | :--- |
@@ -94,7 +93,6 @@ Onde $p$ é o número de processos trabalhadores concorrentes alocados.
 
 ## 6. Tabela de Resultados
 
-Preencha a tabela abaixo utilizando os tempos medidos.
 
 | Threads/Processos | Tempo (s) | Speedup | Eficiência |
 | :---: | :--- | :---: | :---: |
