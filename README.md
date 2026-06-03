@@ -7,6 +7,17 @@
 ## 📋 Sobre o Projeto
 Este sistema foi desenvolvido como parte prática da disciplina de **Sistemas Distribuídos e Concorrentes**. O objetivo principal é simular uma plataforma de segurança pública de alta escala: o sistema recebe fotos de suspeitos enviadas em tempo real por cidadãos via aplicativo (Concorrência), processa e compara essas imagens utilizando múltiplos núcleos da CPU (Paralelismo) e distribui a carga de busca entre servidores regionais (Sistemas Distribuídos).
 
+## 🎯 Justificativa e Cenário de Aplicação
+A busca por pessoas desaparecidas em larga escala é um problema clássico de **Segurança Pública** que exige respostas em tempo real. Imagine o cenário de um aplicativo cidadão integrado às câmeras de segurança de terminais de transporte, aeroportos ou viaturas policiais. 
+
+Quando um cidadão ou uma câmera envia uma foto suspeita, o sistema precisa cruzar essa imagem contra um banco de dados governamental massivo (representado aqui pelas mais de 202 mil fotos). 
+
+### Por que a Paralelização é Obrigatória neste Cenário?
+Como demonstrado no teste de Baseline original, a varredura **Serial** levou mais de **14 minutos** para processar a base completa. Em um cenário real de segurança pública:
+1. **Inviabilidade Crítica:** Um agente da lei ou um cidadão não podem esperar minutos na rua para saber se um suspeito abordado é uma pessoa desaparecida. A resposta precisa ser imediata.
+2. **Colapso por Concorrência:** Se múltiplas pessoas enviarem fotos ao mesmo tempo no modelo Serial, o servidor vai enfileirar as requisições, gerando um tempo de espera catastrófico (gargalo de I/O e CPU Bound).
+3. **Desperdício de Hardware:** Rodar o sistema de forma serial deixa os múltiplos núcleos dos processadores modernos (como os 8 núcleos e 16 threads do Ryzen 7) completamente ociosos.
+
 ---
 
 ## 💾 Engenharia de Dados e Volumetria (2 GB)
@@ -24,26 +35,7 @@ O sistema utiliza processamento de matrizes numéricas através da biblioteca `O
 
 $$d = \sqrt{\sum_{i=1}^{n} (q_i - p_i)^2}$$
 
-Onde $q$ é o vetor do suspeito capturado na rua e $p$ é o vetor do registro lido da pasta. Uma distância estatística menor que `0.6` estabelece uma correspondência positiva de identidade (Match).
-
----
-
-## 🧪 Cenário de Teste Atual: Varredura Serial (Baseline)
-Nesta primeira etapa do projeto, o algoritmo foi executado em modo **Serial Monothread** (utilizando estritamente 1 único núcleo do processador sem concorrência) para servir como *Baseline* (linha de base de performance) para as futuras otimizações concorrentes.
-
-### Configuração do Pior Cenário ($O(n)$):
-Para simular o cenário mais crítico do algoritmo — onde o sistema precisa varrer a base de dados inteira —, a foto de cadastro do alvo (`nathan_cadastro.jpg`) foi posicionada **estritamente na última posição** da lista de mais de 202 mil registros em disco. Uma imagem secundária (`nathan_suspeito.jpg`) foi submetida como a requisição de busca do aplicativo.
-
-### ⏱️ Resultados Obtidos no Ambiente Local
-
-| Métrica Avaliada | Resultado Registrado (Leitura em Disco Bruto) |
-| :--- | :--- |
-| **Total de Fotos (CelebA)** | 202.599 fotos |
-| **Alvo Inserido no Banco** | 1 foto (`nathan_cadastro.jpg`) |
-| **Volume Total de Busca** | 202.600 registros |
-| **Posição do Alvo** | Último elemento da pasta |
-| **Status do Reconhecimento Facial** | **🎯 SUCESSO (Alvo Localizado)** |
-| **Tempo Total de Varredura Serial** | **865.6709 segundos** (~14 minutos e 25 segundos) |
+Onde $q$ é o vetor do suspeito conhecido e $p$ é o vetor do registro lido da pasta. Uma distância estatística menor que `0.6` estabelece uma correspondência positiva de identidade (Match).
 
 ---
 
@@ -58,10 +50,65 @@ Os testes foram executados em um ambiente local com as seguintes especificaçõe
 
 ---
 
-## 🚀 Próximos Passos do Desenvolvimento Concorrente
-O teste serial físico revelou um gargalo crítico de **14 minutos e 25 segundos** quando o sistema precisa abrir arquivo por arquivo em disco usando uma única thread, tornando o sistema totalmente inviável para segurança pública em tempo real.
+## 3. Metodologia de Testes
 
-Na próxima fase do projeto, implementaremos:
-* **Paralelismo de Dados (Multi-threading):** Divisão da carga de leitura de disco e cálculo de matrizes em fatias iguais (*chunks*), distribuindo o processamento entre as 16 threads lógicas disponíveis no processador Ryzen 7 para mitigar o gargalo de I/O ($O(n/k)$).
-* **Cálculo de Speedup:** Mensuração do ganho real de performance obtido através do paralelismo comparado a esta baseline serial.
-* **Arquitetura Concorrente:** Filas de requisições assíncronas para gerenciar múltiplos acessos simultâneos.
+### Explique como os experimentos foram conduzidos.
+* **Como o tempo de execução foi medido:** O tempo foi capturado de forma programática através da função `time.time()` da biblioteca nativa do Python, registrando o carimbo de data/hora imediatamente antes do início da varredura e imediatamente após o término do processamento completo da base.
+* **Quantas execuções foram realizadas:** Devido ao altíssimo custo de tempo e desgaste de hardware (leitura de gigabytes de dados físicos sequencialmente), foi realizada 1 execução completa por cenário configurado.
+* **Se foi utilizada média dos tempos:** Não, utilizou-se o tempo real absoluto de uma execução limpa por cenário.
+* **Qual tamanho da entrada foi usado:** A base de dados inteira do CelebA, totalizando **202.600 registros** processados por teste.
+* **Configurações testadas:** Foram testados cenários com 1 Processo (Serial Baseline), 2 Processos, 4 Processos, 8 Processos e 12 Processos utilizando o `ProcessPoolExecutor`.
+
+### Procedimento experimental
+* **Número de execuções para cada configuração:** 1 execução por configuração.
+* **Forma de cálculo da média:** N/A (Execução direta única).
+* **Condições de execução:** Máquina local utilizando o sistema operacional Windows 11. O sistema operacional foi colocado em estado de ociosidade aparente (sem navegadores ou aplicações pesadas em primeiro plano) para evitar desvios no agendamento de processos do processador.
+
+---
+
+## 4. Resultados Experimentais
+
+Preencha a tabela com os tempos médios de execução obtidos.
+
+| Nº Threads/Processos | Tempo de Execução (s) |
+| :---: | :--- |
+| **1** | 111.6144s |
+| **2** | 363.8154s |
+| **4** | 317.2110s |
+| **8** | 339.2638s |
+| **12** | 266.3063s |
+
+*Nota explicativa sobre a anomalia do cenário de 1 Processo:* O tempo reduzido de 111.61s (em comparação aos 865s medidos na primeira varredura isolada do projeto) ocorreu porque as imagens foram retidas automaticamente no **Buffer de Cache de Sistema de Arquivos (RAM Cache)** do próprio Windows. Isso eliminou o custo de leitura física em disco no primeiro cenário, mas causou distorções nas execuções concorrentes subsequentes que disputaram o barramento.
+
+---
+
+## 5. Cálculo de Speedup e Eficiência
+
+### Fórmulas Utilizadas
+
+* **Speedup:**
+$$Speedup(p) = \frac{T(1)}{T(p)}$$
+Onde $T(1)$ é o tempo da execução baseline com 1 processo (111.6144s) e $T(p)$ é o tempo medido no cenário paralelo de $p$ processos.
+
+* **Eficiência:**
+$$Eficiencia(p) = \frac{Speedup(p)}{p}$$
+Onde $p$ é o número de processos trabalhadores concorrentes alocados.
+
+---
+
+## 6. Tabela de Resultados
+
+Preencha a tabela abaixo utilizando os tempos medidos.
+
+| Threads/Processos | Tempo (s) | Speedup | Eficiência |
+| :---: | :--- | :---: | :---: |
+| **1** | 111.6144s | 1.00x | 1.00 |
+| **2** | 363.8154s | 0.31x | 0.15 |
+| **4** | 317.2110s | 0.35x | 0.09 |
+| **8** | 339.2638s | 0.33x | 0.04 |
+| **12** | 266.3063s | 0.42x | 0.03 |
+
+### 🔍 Análise Crítica dos Resultados (Anomalia de Escalabilidade)
+Os experimentos práticos revelaram que o aumento do número de processos paralelos gerou uma perda de desempenho substancial (Speedup abaixo de 1.0), que serve como um excelente estudo de caso de arquitetura:
+1. **Saturação de I/O de Disco (Gargalo Físico):** O algoritmo do projeto é fortemente limitado por Entrada e Saída (*IO Bound*). Colocar múltiplos processos para ler blocos de arquivos distintos concorretemente do mesmo SSD cria uma disputa massiva no barramento. Os núcleos da CPU passam mais tempo ociosos esperando o hardware do disco responder do que computando as distâncias matemáticas.
+2. **Overhead de Troca de Contexto:** O custo operacional que o sistema de gerenciamento do Windows assume para criar, alternar e sincronizar processos independentes de memória do Python superou o benefício gerado pela distribuição de carga da CPU.
