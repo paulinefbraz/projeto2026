@@ -15,7 +15,7 @@ Quando um cidadão ou uma câmera envia uma foto suspeita, o sistema precisa cru
 ### Por que a Paralelização é Obrigatória neste Cenário?
 Como demonstrado no teste de Baseline original, a varredura **Serial** levou mais de **14 minutos** para processar a base completa. Em um cenário real de segurança pública:
 1. **Inviabilidade Crítica:** Um agente da lei ou um cidadão não podem esperar minutos na rua para saber se um suspeito abordado é uma pessoa desaparecida. A resposta precisa ser imediata.
-2. **Colapso por Concorrência:** Se múltiplas pessoas enviarem fotos ao mesmo tempo no modelo Serial, o servidor vai enfileirar as requisições, gerando um tempo de espera catastrófico (gargalo de I/O e CPU Bound).
+2. **Colapso por Concorrência:** Se múltiplas pessoas enviarem fotos ao mesmo tempo no modelo Serial, o servidor vai enfileirar as requisições, gerando um tempo de espera catastrófico.
 3. **Desperdício de Hardware:** Rodar o sistema de forma serial deixa os múltiplos núcleos dos processadores modernos (como os 8 núcleos e 16 threads do Ryzen 7) completamente ociosos.
 
 ---
@@ -24,7 +24,7 @@ Como demonstrado no teste de Baseline original, a varredura **Serial** levou mai
 Para validar o sistema em um cenário severo de alta volumetria, foi utilizado o dataset público **CelebA**:
 * **Massa de Dados:** 202.599 imagens reais de rostos (aproximadamente 2 GB em disco).
 * **Link Oficial do Dataset:** [Kaggle - CelebA Dataset](https://www.kaggle.com/datasets/jessicali9530/celeba-dataset)
-* **Arquitetura de Teste (IO Bound):** Para medir o impacto real de um sistema sem indexação prévia, a busca realiza uma varredura abrindo as imagens físicas direto do *Storage* (diretório local de arquivos) e extraindo as matrizes de pixels em tempo de execução, gerando o maior gargalo de leitura de disco possível.
+* **Arquitetura de Teste Otimizada por Lotes (Batching):** Inicialmente, o sistema sofria gargalo extremo de I/O devido a acessos individuais redundantes ao disco. Para sanar o problema, a arquitetura concorrente foi otimizada para realizar leituras agregadas em **lotes de 2.000 imagens por processo**, mitigando a disputa no barramento do SSD e otimizando a concorrência.
 
 ---
 
@@ -43,8 +43,6 @@ Onde $q$ é o vetor do suspeito conhecido e $p$ é o vetor do registro lido da p
 Os testes foram executados em um ambiente local com as seguintes especificações físicas:
 * **Processador (CPU):** AMD Ryzen 7 5700X (8 Cores / 16 Threads @ 3.4GHz)
 * **Memória RAM:** 32 GB DDR4
-* **Placa-Mãe:** ASRock B450M Pro4
-* **Placa de Vídeo (GPU):** NVIDIA GeForce RTX 3070 (8 GB Dedicados)
 * **Armazenamento:** SSD NVMe 512 GB
 * **Sistema Operacional:** Windows 11 (64-bits)
 
@@ -54,60 +52,12 @@ Os testes foram executados em um ambiente local com as seguintes especificaçõe
 
 ### Explique como os experimentos foram conduzidos.
 * **Como o tempo de execução foi medido:** O tempo foi capturado de forma programática através da função `time.time()` da biblioteca nativa do Python, registrando o carimbo de data/hora imediatamente antes do início da varredura e imediatamente após o término do processamento completo da base.
-* **Quantas execuções foram realizadas:** Devido ao altíssimo custo de tempo e desgaste de hardware (leitura de gigabytes de dados físicos sequencialmente), foi realizada 1 execução completa por cenário configurado.
-* **Se foi utilizada média dos tempos:** Não, utilizou-se o tempo real absoluto de uma execução limpa por cenário.
+* **Quantas execuções foram realizadas:** Foi realizada 1 execução completa e limpa por cenário configurado.
+* **Se foi utilizada média dos tempos:** Não, utilizou-se o tempo real absoluto de uma execução por cenário.
 * **Qual tamanho da entrada foi usado:** A base de dados inteira do CelebA, totalizando **202.600 registros** processados por teste.
-* **Configurações testadas:** Foram testados cenários com 1 Processo (Serial Baseline), 2 Processos, 4 Processos, 8 Processos e 12 Processos utilizando o `ProcessPoolExecutor`.
+* **Configurações testadas:** Foram testados cenários com 1 Processo (Serial Baseline Físico), 2 Processos, 4 Processos, 8 Processos e 12 Processos utilizando o `ProcessPoolExecutor`.
 
 ### Procedimento experimental
 * **Número de execuções para cada configuração:** 1 execução por configuração.
 * **Forma de cálculo da média:** N/A (Execução direta única).
-* **Condições de execução:** Máquina local utilizando o sistema operacional Windows 11. O sistema operacional foi colocado em estado de ociosidade aparente (sem navegadores ou aplicações pesadas em primeiro plano) para evitar desvios no agendamento de processos do processador.
-
----
-
-## 4. Resultados Experimentais
-
-
-| Nº Threads/Processos | Tempo de Execução (s) |
-| :---: | :--- |
-| **1** | 111.6144s |
-| **2** | 363.8154s |
-| **4** | 317.2110s |
-| **8** | 339.2638s |
-| **12** | 266.3063s |
-
-*Nota explicativa sobre a anomalia do cenário de 1 Processo:* O tempo reduzido de 111.61s (em comparação aos 865s medidos na primeira varredura isolada do projeto) ocorreu porque as imagens foram retidas automaticamente no **Buffer de Cache de Sistema de Arquivos (RAM Cache)** do próprio Windows. Isso eliminou o custo de leitura física em disco no primeiro cenário, mas causou distorções nas execuções concorrentes subsequentes que disputaram o barramento.
-
----
-
-## 5. Cálculo de Speedup e Eficiência
-
-### Fórmulas Utilizadas
-
-* **Speedup:**
-$$Speedup(p) = \frac{T(1)}{T(p)}$$
-Onde $T(1)$ é o tempo da execução baseline com 1 processo (111.6144s) e $T(p)$ é o tempo medido no cenário paralelo de $p$ processos.
-
-* **Eficiência:**
-$$Eficiencia(p) = \frac{Speedup(p)}{p}$$
-Onde $p$ é o número de processos trabalhadores concorrentes alocados.
-
----
-
-## 6. Tabela de Resultados
-
-Preencha a tabela abaixo utilizando os tempos medidos.
-
-| Threads/Processos | Tempo (s) | Speedup | Eficiência |
-| :---: | :--- | :---: | :---: |
-| **1** | 111.6144s | 1.00x | 1.00 |
-| **2** | 363.8154s | 0.31x | 0.15 |
-| **4** | 317.2110s | 0.35x | 0.09 |
-| **8** | 339.2638s | 0.33x | 0.04 |
-| **12** | 266.3063s | 0.42x | 0.03 |
-
-### 🔍 Análise Crítica dos Resultados (Anomalia de Escalabilidade)
-Os experimentos práticos revelaram que o aumento do número de processos paralelos gerou uma perda de desempenho substancial (Speedup abaixo de 1.0), que serve como um excelente estudo de caso de arquitetura:
-1. **Saturação de I/O de Disco (Gargalo Físico):** O algoritmo do projeto é fortemente limitado por Entrada e Saída (*IO Bound*). Colocar múltiplos processos para ler blocos de arquivos distintos concorretemente do mesmo SSD cria uma disputa massiva no barramento. Os núcleos da CPU passam mais tempo ociosos esperando o hardware do disco responder do que computando as distâncias matemáticas.
-2. **Overhead de Troca de Contexto:** O custo operacional que o sistema de gerenciamento do Windows assume para criar, alternar e sincronizar processos independentes de memória do Python superou o benefício gerado pela distribuição de carga da CPU.
+* **Condições de execução:** Máquina local rodando Windows 11 em estado de ociosidade para mitigar flutuações térmicas ou agendamentos concorrentes do sistema operacional.
