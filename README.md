@@ -104,8 +104,4 @@ Preencha a tabela abaixo utilizando os tempos medidos.
 | **8** | 7.1048s | 6.09x | 0.76 |
 | **12** | 6.1939s | 6.99x | 0.58 |
 
-### 🔍 Análise Crítica dos Resultados
-Os resultados práticos do experimento demonstram curvas ideais de comportamento de sistemas concorrentes de alto desempenho sob escala rigorosa de hardware:
 
-1. **Eficiência Controlada e Descendente:** A tabela registra que a eficiência inicia em `1.00` (100% no cenário de referência) e apresenta um declínio suave e progressivo para `0.92`, `0.91`, `0.76` e finaliza em `0.58` com 12 processos. Esse comportamento decrescente cumpre perfeitamente os modelos teóricos de sistemas paralelos reais: quanto mais trabalhadores concorrentes são alocados, maior é a disputa pelo barramento lógico e maior o custo computacional que o sistema operacional assume para gerenciar a troca de contexto entre os processos.
-2. **O Impacto Positivo da Otimização por Lotes (Batching):** A mudança algorítmica para o processamento de imagens estruturado em lotes de 2.000 unidades foi o fator determinante para mitigar o colapso por contenção no SSD. Em vez de milhares de acessos síncronos e atômicos ao barramento que travavam as execuções anteriores, o sistema realizou leituras em blocos contínuos. Como os dados residiram na memória de forma altamente organizada durante os cenários concorrentes, o cálculo vetorial operou com excelente localidade de dados, reduzindo o tempo do pior cenário de **14 minutos** para fantásticos **6.19 segundos**.
