@@ -99,6 +99,8 @@ Resultados recalculados e normalizados em conformidade estrita com o escalonamen
 | **8** | 6.9025s | 6.19x | 0.77 |
 | **12** | 5.9624s | 7.16x | 0.60 |
 
+<img width="528" height="323" alt="image" src="https://github.com/user-attachments/assets/929ee340-5b6e-497d-bba8-747a3f231f73" />
+
 ### 🔍 Análise Crítica dos Resultados (Conformidade com os Modelos de Escalabilidade)
 A limpeza e recalibração dos experimentos trouxeram as métricas do sistema para a perfeita concordância com os axiomas teóricos da computação paralela:
 
