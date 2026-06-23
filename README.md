@@ -101,7 +101,7 @@ Resultados recalculados e normalizados em conformidade estrita com o escalonamen
 
 <img width="528" height="323" alt="image" src="https://github.com/user-attachments/assets/929ee340-5b6e-497d-bba8-747a3f231f73" />
 
-![Uploading image.png…]()
+<img width="882" height="318" alt="image" src="https://github.com/user-attachments/assets/998773e1-1086-4982-b78e-2cf3dd756ca6" />
 
 
 ### 🔍 Análise Crítica dos Resultados (Conformidade com os Modelos de Escalabilidade)
